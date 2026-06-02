@@ -126,5 +126,44 @@ If mounted, API docs will be available at `http://localhost:5000/api-docs` and w
 - Containerize with Docker and orchestrate with `docker-compose` or Kubernetes for scaling.
 - Add a load balancer (NGINX or managed) and auto-scaling for app instances.
 
+---
 
+## Docker & Docker Compose
+
+The project includes `Dockerfile` for both backend and frontend, and a `docker-compose.yml` for easy local deployment.
+
+### Prerequisites
+- Docker
+- Docker Compose
+
+### Run with Docker Compose
+
+1. Create a `.env` file at the project root with database credentials (optional; defaults are provided):
+
+```bash
+cp .env.example .env
+```
+
+2. Start all services (backend, frontend, PostgreSQL):
+
+```bash
+docker-compose up --build
+```
+
+3. Access the services:
+   - Frontend: `http://localhost:3000`
+   - Backend: `http://localhost:5000`
+   - Database: `localhost:5432`
+
+4. Stop services:
+
+```bash
+docker-compose down
+```
+
+To remove volumes (clean database):
+
+```bash
+docker-compose down -v
+```
 
