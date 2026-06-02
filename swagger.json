@@ -1,0 +1,317 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Primetrade.ai API - Automated Trading Operations Center",
+    "description": "Scalable REST API boilerplate featuring JWT authentication, strict Role-Based Access Control (RBAC), and multi-tenant Agent Strategy Execution pipelines.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5000/api/v1",
+      "description": "Local Development Server"
+    }
+  ],
+  "paths": {
+    "/auth/register": {
+      "post": {
+        "summary": "Register a new user / administrator",
+        "tags": ["Authentication"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterPayload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Account created successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthSuccessResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failure or email already registered."
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "summary": "Authenticate credentials and issue session JWT",
+        "tags": ["Authentication"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginPayload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authentication successful.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthSuccessResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials provided."
+          }
+        }
+      }
+    },
+    "/tasks": {
+      "get": {
+        "summary": "Retrieve agent strategy instructions",
+        "description": "Standard users receive only their owned strategies. Admins bypass tenancy barriers to inspect the global cluster matrix.",
+        "tags": ["Agent Instructions"],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success array payload retrieved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "count": { "type": "integer", "example": 1 },
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/TaskEntity" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Session expired or missing JWT bearer." }
+        }
+      },
+      "post": {
+        "summary": "Dispatch a new agent strategy instruction",
+        "tags": ["Agent Instructions"],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskInputPayload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Strategy successfully initialized.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": { "$ref": "#/components/schemas/TaskEntity" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Invalid operational bounds or missing fields." },
+          "401": { "description": "Unauthorized." }
+        }
+      }
+    },
+    "/tasks/{id}": {
+      "put": {
+        "summary": "Modify an operational tracking node",
+        "description": "Standard users can only modify their own items. Admins can update any node.",
+        "tags": ["Agent Instructions"],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "UUIDv4 string identifier of the task node",
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": { "type": "string" },
+                  "description": { "type": "string" },
+                  "status": { "type": "string", "enum": ["pending", "completed"] }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Entity updated successfully." },
+          "403": { "description": "Action denied: Ownership boundary match failure." },
+          "404": { "description": "Target strategy node not found." }
+        }
+      },
+      "delete": {
+        "summary": "Terminate / drop an active strategy node",
+        "tags": ["Agent Instructions"],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Resource cleared completely." },
+          "403": { "description": "Action denied: Ownership boundary mismatch." },
+          "404": { "description": "Entity not found." }
+        }
+      }
+    },
+    "/users": {
+      "get": {
+        "summary": "Retrieve all system trader profiles (Admin Only)",
+        "description": "Returns an administrative compilation of registered traders containing their system UUID and email. Strictly blocks unauthorized tokens or non-admin roles.",
+        "tags": ["Admin Utilities"],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User array directory synced successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/UserMinimalEntity"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Missing or corrupted authorization credentials." },
+          "403": { "description": "Access forbidden: Requester lacks administrative system scope permissions." }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Input your authorization token into the input field using format: Bearer <JWT_TOKEN>"
+      }
+    },
+    "schemas": {
+      "RegisterPayload": {
+        "type": "object",
+        "required": ["email", "password"],
+        "properties": {
+          "email": { "type": "string", "format": "email", "example": "trader@primetrade.ai" },
+          "password": { "type": "string", "minLength": 6, "example": "securepass123" },
+          "role": { "type": "string", "enum": ["user", "admin"], "default": "user", "example": "user" }
+        }
+      },
+      "LoginPayload": {
+        "type": "object",
+        "required": ["email", "password"],
+        "properties": {
+          "email": { "type": "string", "format": "email", "example": "trader@primetrade.ai" },
+          "password": { "type": "string", "example": "securepass123" }
+        }
+      },
+      "AuthSuccessResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": true },
+          "token": { "type": "string", "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." },
+          "user": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string", "format": "uuid", "example": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d" },
+              "email": { "type": "string", "example": "trader@primetrade.ai" },
+              "role": { "type": "string", "example": "user" }
+            }
+          }
+        }
+      },
+      "TaskInputPayload": {
+        "type": "object",
+        "required": ["title"],
+        "properties": {
+          "title": { "type": "string", "example": "BTC Momentum Breakout" },
+          "description": { "type": "string", "example": "Execute long if volume spikes 20% over 5m SMA" }
+        }
+      },
+      "TaskEntity": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid", "example": "f81d4fae-7dec-11d0-a765-00a0c91e6bf6" },
+          "title": { "type": "string", "example": "BTC Momentum Breakout" },
+          "description": { "type": "string", "example": "Execute long if volume spikes 20% over 5m SMA" },
+          "status": { "type": "string", "enum": ["pending", "completed"], "example": "pending" },
+          "userId": { "type": "string", "format": "uuid", "example": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "UserMinimalEntity": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid", "example": "ac991ca1-64a9-4d72-8893-323f4b81ad98" },
+          "email": { "type": "string", "example": "shaunakkundu69@gmail.com" },
+          "role": { "type": "string", "example": "user" }
+        }
+      }
+    }
+  }
+}
