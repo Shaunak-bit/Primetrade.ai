@@ -126,15 +126,5 @@ If mounted, API docs will be available at `http://localhost:5000/api-docs` and w
 - Containerize with Docker and orchestrate with `docker-compose` or Kubernetes for scaling.
 - Add a load balancer (NGINX or managed) and auto-scaling for app instances.
 
----
 
-## Next Steps (optional suggestions)
 
-- Add `GET /api/v1/users` (admin) and update frontend to populate an assignee dropdown.
-- Add Swagger/OpenAPI documentation and mount it at `/api-docs`.
-- Create a `README` in `backend/` and `frontend/` with more details if desired.
-- Push to GitHub and add CI (GitHub Actions) for tests and linting.
-
----
-
-If you want, I can now add the `GET /api/v1/users` endpoint and a minimal `swagger.json` and mount Swagger UI.
