@@ -1,11 +1,17 @@
 const jwt = require('jsonwebtoken');
 const { User } = require('../models');
 
+// Validate JWT_SECRET at module load time — crash early if missing
+if (!process.env.JWT_SECRET) {
+  console.error('FATAL: JWT_SECRET environment variable is not set. Exiting.');
+  process.exit(1);
+}
+
 // Helper to sign JWT tokens
 const generateToken = (userId) => {
   return jwt.sign(
     { id: userId },
-    process.env.JWT_SECRET || 'your_super_secret_jwt_key_change_me_in_production',
+    process.env.JWT_SECRET,
     { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
   );
 };
@@ -61,7 +67,7 @@ exports.login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    // Find user and include password (since we need it to verify)
+    // Find user
     const user = await User.findOne({ where: { email } });
     if (!user) {
       return res.status(401).json({
