@@ -8,6 +8,7 @@ const userRoutes = require('./routes/userRoutes');
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
+app.set('trust proxy', 1);
 const swaggerUi = require('swagger-ui-express');
 const swaggerDocument = require('../swagger.json');
 
