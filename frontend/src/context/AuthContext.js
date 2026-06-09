@@ -2,13 +2,13 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import api, { setUnauthorizedCallback } from '../services/api';
+import api, { setUnauthorizedCallback, setToken, clearToken } from '../services/api';
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(null);
+  const [token, setTokenState] = useState(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
@@ -18,8 +18,9 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
     }
+    clearToken();
     setUser(null);
-    setToken(null);
+    setTokenState(null);
     router.push('/');
   }, [router]);
 
@@ -31,7 +32,8 @@ export const AuthProvider = ({ children }) => {
 
       if (storedToken && storedUser) {
         try {
-          setToken(storedToken);
+          setToken(storedToken);        // ← restore into axios interceptor
+          setTokenState(storedToken);
           setUser(JSON.parse(storedUser));
         } catch (e) {
           console.error('Failed to parse cached user data:', e);
@@ -59,7 +61,8 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('user', JSON.stringify(responseUser));
       }
 
-      setToken(responseToken);
+      setToken(responseToken);          // ← set into axios interceptor
+      setTokenState(responseToken);
       setUser(responseUser);
       return { success: true, user: responseUser };
     } catch (error) {
@@ -80,7 +83,8 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('user', JSON.stringify(responseUser));
       }
 
-      setToken(responseToken);
+      setToken(responseToken);          // ← set into axios interceptor
+      setTokenState(responseToken);
       setUser(responseUser);
       return { success: true, user: responseUser };
     } catch (error) {
