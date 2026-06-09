@@ -9,15 +9,14 @@ const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
 app.set('trust proxy', 1);
+
 const swaggerUi = require('swagger-ui-express');
 const swaggerDocument = require('../swagger.json');
-
 
 // Security HTTP headers
 app.use(helmet());
 
-
-// CORS configuration (allow requests from the frontend client port)
+// CORS configuration
 app.use(cors({
   origin: process.env.CLIENT_ORIGIN || 'http://localhost:3000',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -30,16 +29,17 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
-// Rate limiter for authentication endpoints (registration/login protection)
+// Rate limiter
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  validate: { xForwardedForHeader: false },  // ← fixes the warning
   message: {
     success: false,
     message: 'Too many authentication attempts from this IP, please try again after 15 minutes.'
   },
-  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 
 // Health check endpoint
@@ -52,7 +52,7 @@ app.use('/api/v1/auth', authLimiter, authRoutes);
 app.use('/api/v1/tasks', taskRoutes);
 app.use('/api/v1/users', userRoutes);
 
-// Catch-all 404 handler for unmatched routes
+// 404 handler
 app.use((req, res, next) => {
   res.status(404).json({
     success: false,
@@ -60,7 +60,7 @@ app.use((req, res, next) => {
   });
 });
 
-// Global Centralized Error Handler
+// Global error handler
 app.use(errorHandler);
 
 module.exports = app;
